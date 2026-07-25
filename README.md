@@ -46,7 +46,40 @@ Accepted URL forms (per `git-clone(1)`): `https://`, `ssh://`, `git://`, scp-lik
 | `Register(forge)`                   | Add a self-hosted forge with its own parser                            |
 | `ExpandPRList(spec)`                | `"1,2,5-7"` → `[1 2 5 6 7]`                                            |
 | `IsValidRepoName(name)`             | Plausible repository name check                                        |
-| `DetectVCS(dir)`                    | `"jj"` \| `"git"` \| `""` from checkout markers (jj wins if colocated) |
+| `DetectVCS(dir)`                    | Alias for `vcs.Detect`, below                                          |
+
+## Checkout inspection - `forge/vcs`
+
+`github.com/gechr/forge/vcs` answers questions about an existing checkout from marker files alone - no subprocess, no repository opened - so it is as pure and offline as the parsing above. Driving a VCS is deliberately out of scope.
+
+```go
+which := vcs.Detect(dir)   // "jj" | "git" | "" - what drives this checkout
+
+r := vcs.NewResolver()
+root := r.Root("src/main.go")     // repository the file belongs to, or ""
+root, which = r.RootVCS(dir)      // both at once, for a nested path
+
+rel, err := filepath.Rel(r.Root(p), r.Abs(p))  // path within its repository
+```
+
+| Symbol                   | Description                                                               |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `Detect(dir)`            | `"jj"` \| `"git"` \| `""` from `dir`'s own markers (jj wins if colocated) |
+| `NewResolver()`          | Resolver caching each directory it walks; safe for concurrent use         |
+| `(*Resolver).Root(p)`    | Repository containing the *file* `p`, or `""`                             |
+| `(*Resolver).RootDir(d)` | Repository containing `d`, searching `d` itself first                     |
+| `(*Resolver).RootVCS(d)` | `(root, vcs)` for `d` - the safe pairing of `RootDir` and `Detect`        |
+| `(*Resolver).Abs(p)`     | `p` absolute and symlink-resolved, as the resolver keys on it             |
+| `Markers()`              | `.jj`, `.git`, `.hg`, `.svn` - build walk-pruning sets from this          |
+
+`Detect` and `Resolver` answer different questions, so they consider different markers. `Detect` reports what a caller should *drive* the checkout with, and only git and jj qualify - a Mercurial or Subversion checkout yields `""` rather than a name no consumer has a driver for. `Resolver` reports where a repository *begins*, and all four markers delimit one.
+
+Markers are tested with `Lstat`, so a `.git` file (submodule, linked worktree) counts, as does a dangling symlink: the directory was set up as a checkout either way.
+
+A `Resolver` canonicalises paths before walking them, so one repository has one root however a caller spells the way to it - relative or absolute, through a symlink or not. Two consequences worth knowing:
+
+- Pair `Root` with `Abs`, not `filepath.Abs`. The latter does not resolve symlinks, so a path reaching a repository through one does not sit under the root it resolved to, and `filepath.Rel` yields a `"../"`-escaping result instead of a path within the repository.
+- Prefer `RootVCS` over `Detect(r.RootDir(d))`. `RootDir` yields `""` outside a repository, and joining a marker onto `""` would inspect the *process* working directory - reporting whatever VCS governs wherever the program was started.
 
 ## Extraction rules
 

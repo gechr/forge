@@ -7,7 +7,7 @@ tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 require (
 	github.com/gechr/gorules v0.0.3
-	github.com/gechr/x v0.5.6
+	github.com/gechr/x v0.5.7
 	github.com/quasilyte/go-ruleguard/dsl v0.3.23
 	github.com/stretchr/testify v1.11.1
 )

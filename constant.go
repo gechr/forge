@@ -1,5 +1,7 @@
 package forge
 
+import "github.com/gechr/forge/vcs"
+
 // Named forges recognized by Resolve and reported in Ref.Forge. Azure DevOps
 // is deliberately not a Resolve name - its clone URLs embed an org/project
 // path that owner/name construction cannot express - but dev.azure.com URLs
@@ -30,10 +32,11 @@ const (
 	SchemeSSH   = "ssh"
 )
 
-// VCS marker names returned by DetectVCS.
+// VCS names returned by DetectVCS, aliasing the vcs package's own so the two
+// spellings cannot drift.
 const (
-	VCSGit = "git"
-	VCSJJ  = "jj"
+	VCSGit = vcs.Git
+	VCSJJ  = vcs.JJ
 )
 
 const (
