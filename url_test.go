@@ -374,6 +374,67 @@ func TestParseURL(t *testing.T) {
 			},
 		},
 		{
+			// Legacy dash-less UI paths still resolve on gitlab.com. Reading
+			// the path whole would put the branch in Name and "owner/repo/tree"
+			// in Owner - so the project path ends at the first action word.
+			name:  "gitlab legacy tree without dash separator",
+			input: "https://gitlab.com/owner/repo/tree/main",
+			want: Ref{
+				Branch:        "main",
+				CloneURL:      "https://gitlab.com/owner/repo.git",
+				ExplicitOwner: true,
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "repo",
+				Owner:         "owner",
+				Scheme:        "https",
+			},
+		},
+		{
+			name:  "gitlab legacy blob with file path without dash separator",
+			input: "https://gitlab.com/owner/repo/blob/main/go.mod",
+			want: Ref{
+				CloneURL:      "https://gitlab.com/owner/repo.git",
+				ExplicitOwner: true,
+				FilePath:      "go.mod",
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "repo",
+				Owner:         "owner",
+				Scheme:        "https",
+			},
+		},
+		{
+			// Name must not become a merge-request number.
+			name:  "gitlab legacy merge request without dash separator",
+			input: "https://gitlab.com/owner/repo/merge_requests/7",
+			want: Ref{
+				CloneURL:      "https://gitlab.com/owner/repo.git",
+				ExplicitOwner: true,
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "repo",
+				Owner:         "owner",
+				PullRequest:   "7",
+				Scheme:        "https",
+			},
+		},
+		{
+			// An action word in the first two positions is a project named
+			// after one, not an action.
+			name:  "gitlab project named after an action word",
+			input: "https://gitlab.com/owner/tree",
+			want: Ref{
+				CloneURL:      "https://gitlab.com/owner/tree.git",
+				ExplicitOwner: true,
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "tree",
+				Owner:         "owner",
+				Scheme:        "https",
+			},
+		},
+		{
 			name:  "gitlab https tree via dash separator",
 			input: "https://gitlab.com/owner/repo/-/tree/main",
 			want: Ref{

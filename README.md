@@ -93,5 +93,5 @@ rel, err := filepath.Rel(r.Root(p), r.Abs(p))  // path within its repository
 - **Bitbucket** `src/<ref>` does not name its ref type: 40-hex lands in `Commit`, anything else in `Rev`.
 - **Gitea** `src/branch|tag|commit/<value>` names its ref type explicitly, and is extracted as such.
 - **Bare hosts** need a dot, so `owner/repo` is shorthand rather than a URL, and `localhost` needs an explicit scheme.
-- **GitLab** paths are read whole - every segment but the last is the `Owner` - because groups nest arbitrarily deep. `/-/` introduces any non-project path, which is what makes that unambiguous; a legacy dash-less UI path (`/owner/repo/tree/main`) reads as a deeper project path instead.
+- **GitLab** groups nest arbitrarily deep, so the project path ends at the first *action* segment (`-`, `tree`, `blob`, `merge_requests`, ...) rather than at a fixed depth: `group/subgroup/repo` is all project path, while `owner/repo/tree/main` and the current `/-/` form both stop at `repo`. An action word in the first two positions is a project named after one.
 - **Azure DevOps** keeps `org/project` in `Owner`, so the `Ref` is lossless. Its `_git` segment and separate SSH host cannot be expressed as `host/owner/name`, so `WebURL`, `HTTPSURL`, and `SSHURL` return `""` rather than a URL that has never existed - use `CloneURL`.

@@ -196,7 +196,7 @@ func parseGitHub(path, scheme, host string) (Ref, bool) {
 		// this Join deliberately reassembles it.
 		ref.Tag = strings.Join(segments[4:], pathSep)
 	}
-	if len(segments) >= minRefSegments && segments[2] == "commit" &&
+	if len(segments) >= minRefSegments && segments[2] == segmentCommit &&
 		xstrings.IsGitCommit(segments[3]) {
 		ref.Commit = segments[3]
 	}
@@ -225,14 +225,11 @@ func parseGitHub(path, scheme, host string) (Ref, bool) {
 //	owner/repo/-/blob/main/README.md
 //	group/subgroup/repo/-/merge_requests/5
 //
-// GitLab nests projects in groups arbitrarily deep, so the whole path is the
-// project path: every segment but the last is the owner. Unlike the other
-// forges, trailing segments cannot be discarded as UI path - on GitLab they are
-// the repository's own address, and dropping them yields a Slug that names the
-// containing group rather than the project. Current GitLab introduces any
-// non-project path with the /-/ separator, which is what makes this
-// unambiguous; a legacy dash-less UI path (/owner/repo/tree/main) is read as a
-// deeper project path instead.
+// GitLab nests projects in groups arbitrarily deep, so the project path cannot
+// be recognized by arity - the boundary is the first segment naming an action.
+// Current GitLab introduces one with the "-" separator; the bare forms are
+// legacy URLs that still resolve. With no action segment the whole path is the
+// project path, which is what makes a nested group work.
 func parseGitLab(path, scheme, host string) (Ref, bool) {
 	segments := splitPath(path)
 	if len(segments) < minRepoSegments {
@@ -241,11 +238,14 @@ func parseGitLab(path, scheme, host string) (Ref, bool) {
 
 	var owner, name string
 	var rest []string
-	if dashIdx := slices.Index(segments, "-"); dashIdx >= minRepoSegments {
-		// Everything before /-/ is the project path.
-		owner = strings.Join(segments[:dashIdx-1], pathSep)
-		name = segments[dashIdx-1]
-		rest = segments[dashIdx+1:]
+	if action := gitLabActionIndex(segments); action >= 0 {
+		owner = strings.Join(segments[:action-1], pathSep)
+		name = segments[action-1]
+		// "-" is not itself an action, it only introduces one.
+		rest = segments[action:]
+		if segments[action] == gitLabSeparator {
+			rest = segments[action+1:]
+		}
 	} else {
 		last := len(segments) - 1
 		owner = strings.Join(segments[:last], pathSep)
@@ -275,6 +275,32 @@ func parseGitLab(path, scheme, host string) (Ref, bool) {
 		}
 	}
 	return ref, true
+}
+
+// gitLabActions are the path segments that end a GitLab project path. Reading a
+// legacy dash-less UI path as a deeper project path instead would put a
+// filename, a merge-request number, or a commit sha in Name - structurally
+// different data, not a longer namespace.
+//
+// This makes the same bet parseGitHub already makes on its own action words: a
+// project literally named "tree" is misread, which is rarer than a legacy link.
+var gitLabActions = []string{
+	gitLabSeparator, "activity", "blame", segmentBlob, segmentCommit, segmentCommits, "compare",
+	"issues", "merge_requests", "pipelines", "raw", "releases", "snippets",
+	"tags", segmentTree, "wikis",
+}
+
+// gitLabActionIndex returns the index of the first segment that ends the project
+// path, or -1 when the whole path is the project path. An action word in the
+// first two positions is a project named after one, not an action: the path must
+// still yield both an owner and a name.
+func gitLabActionIndex(segments []string) int {
+	for i, segment := range segments {
+		if i >= minRepoSegments && slices.Contains(gitLabActions, segment) {
+			return i
+		}
+	}
+	return -1
 }
 
 // parseGitea extracts owner/repo from Gitea/Forgejo paths (e.g. Codeberg).

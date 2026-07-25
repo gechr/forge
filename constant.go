@@ -48,7 +48,9 @@ const (
 	pathSep          = "/" // URL path separator
 
 	// URL path segments that introduce a ref and (optionally) a file path.
-	segmentBlob    = "blob"
-	segmentCommits = "commits"
-	segmentTree    = "tree"
+	gitLabSeparator = "-" // introduces a non-project path on current GitLab
+	segmentCommit   = "commit"
+	segmentBlob     = "blob"
+	segmentCommits  = "commits"
+	segmentTree     = "tree"
 )
