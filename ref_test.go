@@ -79,3 +79,33 @@ func TestRefCloneURLs(t *testing.T) {
 		})
 	}
 }
+
+// Azure DevOps interposes a _git segment in its web and clone paths and uses a
+// different host entirely for SSH, so no arrangement of host, owner, and name
+// reproduces them. The builders report that by returning "" rather than naming
+// a page that has never existed; CloneURL still carries the real path.
+func TestRefURLBuildersRefuseAzureDevOps(t *testing.T) {
+	t.Parallel()
+
+	ref, ok := ParseURL("https://dev.azure.com/org/project/_git/repo")
+	require.True(t, ok)
+
+	require.Equal(t, "org/project", ref.Owner, "the project segment stays in the Ref")
+	require.Equal(t, "org/project/repo", ref.Slug())
+	require.Equal(t, "https://dev.azure.com/org/project/_git/repo", ref.CloneURL)
+
+	require.Empty(t, ref.WebURL())
+	require.Empty(t, ref.HTTPSURL())
+	require.Empty(t, ref.SSHURL())
+}
+
+// A Ref built by hand from coordinates is refused on the same grounds: the
+// guard keys on the host, not on how the Ref was produced.
+func TestRefURLBuildersRefuseAzureDevOpsFromCoordinates(t *testing.T) {
+	t.Parallel()
+
+	ref := Ref{Host: HostAzureDevOps, Owner: "org/project", Name: "repo"}
+	require.Empty(t, ref.WebURL())
+	require.Empty(t, ref.HTTPSURL())
+	require.Empty(t, ref.SSHURL())
+}

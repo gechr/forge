@@ -329,6 +329,51 @@ func TestParseURL(t *testing.T) {
 			},
 		},
 		{
+			// The plain browse URL and the SSH clone URL - the two forms a
+			// human copies - carry no /-/ separator, so the whole path is the
+			// project path. Reading only the first two segments would name the
+			// containing group, which is a real page and so fails silently.
+			name:  "gitlab nested group without dash separator",
+			input: "https://gitlab.com/group/subgroup/repo",
+			want: Ref{
+				CloneURL:      "https://gitlab.com/group/subgroup/repo.git",
+				ExplicitOwner: true,
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "repo",
+				Owner:         "group/subgroup",
+				Scheme:        "https",
+			},
+		},
+		{
+			name:  "gitlab deeply nested group without dash separator",
+			input: "https://gitlab.com/group/sub1/sub2/repo",
+			want: Ref{
+				CloneURL:      "https://gitlab.com/group/sub1/sub2/repo.git",
+				ExplicitOwner: true,
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "repo",
+				Owner:         "group/sub1/sub2",
+				Scheme:        "https",
+			},
+		},
+		{
+			// The form the README documents, and the one clone resolves a
+			// clone source from.
+			name:  "gitlab nested group scp-like",
+			input: "git@gitlab.com:group/subgroup/repo.git",
+			want: Ref{
+				CloneURL:      "git@gitlab.com:group/subgroup/repo.git",
+				ExplicitOwner: true,
+				Forge:         "gitlab",
+				Host:          "gitlab.com",
+				Name:          "repo",
+				Owner:         "group/subgroup",
+				Scheme:        "ssh",
+			},
+		},
+		{
 			name:  "gitlab https tree via dash separator",
 			input: "https://gitlab.com/owner/repo/-/tree/main",
 			want: Ref{
@@ -730,7 +775,7 @@ func TestParseURL(t *testing.T) {
 				Forge:         "azuredevops",
 				Host:          "dev.azure.com",
 				Name:          "repo",
-				Owner:         "org",
+				Owner:         "org/project",
 				Scheme:        "https",
 			},
 		},

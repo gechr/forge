@@ -129,9 +129,13 @@ func splitPath(path string) []string {
 }
 
 // buildRef builds a Ref from the extracted components.
+// An owner may span several segments - a GitLab group path, an Azure DevOps
+// org/project - so it is rejected when any one of them is empty rather than
+// only when the whole is. A "//" in a path is malformed, and joining around the
+// hole would silently accept it as a deeper namespace.
 func buildRef(scheme, host, owner, name string, appendDotGit bool) (Ref, bool) {
 	name = strings.TrimSuffix(name, dotGit)
-	if owner == "" || name == "" {
+	if name == "" || owner == "" || slices.Contains(strings.Split(owner, pathSep), "") {
 		return Ref{}, false
 	}
 	if scheme == "http" {
@@ -211,15 +215,24 @@ func parseGitHub(path, scheme, host string) (Ref, bool) {
 	return ref, true
 }
 
-// parseGitLab extracts owner/repo from GitLab paths, supporting nested groups
-// via the /-/ separator.
+// parseGitLab extracts owner/repo from GitLab paths, supporting nested groups.
 //
 // Recognized patterns:
 //
 //	owner/repo
+//	group/subgroup/repo
 //	owner/repo/-/tree/main
 //	owner/repo/-/blob/main/README.md
 //	group/subgroup/repo/-/merge_requests/5
+//
+// GitLab nests projects in groups arbitrarily deep, so the whole path is the
+// project path: every segment but the last is the owner. Unlike the other
+// forges, trailing segments cannot be discarded as UI path - on GitLab they are
+// the repository's own address, and dropping them yields a Slug that names the
+// containing group rather than the project. Current GitLab introduces any
+// non-project path with the /-/ separator, which is what makes this
+// unambiguous; a legacy dash-less UI path (/owner/repo/tree/main) is read as a
+// deeper project path instead.
 func parseGitLab(path, scheme, host string) (Ref, bool) {
 	segments := splitPath(path)
 	if len(segments) < minRepoSegments {
@@ -234,9 +247,9 @@ func parseGitLab(path, scheme, host string) (Ref, bool) {
 		name = segments[dashIdx-1]
 		rest = segments[dashIdx+1:]
 	} else {
-		// No /-/ separator: standard 2-segment.
-		owner = segments[0]
-		name = segments[1]
+		last := len(segments) - 1
+		owner = strings.Join(segments[:last], pathSep)
+		name = segments[last]
 	}
 
 	ref, ok := buildRef(scheme, host, owner, name, true)
@@ -377,13 +390,18 @@ func parseSourcehut(path, scheme, host string) (Ref, bool) {
 	return ref, true
 }
 
-// parseAzureDevOps extracts org/repo from Azure DevOps paths. The _git
-// segment is required: URLs without it (e.g. project overview pages) do not
-// identify a repository.
+// parseAzureDevOps extracts org/project and repo from Azure DevOps paths. The
+// _git segment is required: URLs without it (e.g. project overview pages) do
+// not identify a repository.
 //
 // Recognized pattern:
 //
 //	org/project/_git/repo
+//
+// Owner carries the whole org/project path, as it carries a nested group path
+// on GitLab. Keeping only the org would drop the project from the Ref's own
+// fields - recoverable from CloneURL but not from Owner, Name, or Slug, which
+// would then name a repository that does not exist.
 func parseAzureDevOps(path, scheme, host string) (Ref, bool) {
 	segments := splitPath(path)
 
@@ -392,9 +410,11 @@ func parseAzureDevOps(path, scheme, host string) (Ref, bool) {
 		return Ref{}, false
 	}
 
-	owner := segments[0]
+	// This forge builds its Ref directly rather than through buildRef, to keep
+	// the _git path in CloneURL, so it repeats buildRef's empty-segment guard.
+	owner := strings.Join(segments[:gitIdx], pathSep)
 	name := segments[gitIdx+1]
-	if owner == "" || name == "" {
+	if name == "" || owner == "" || slices.Contains(segments[:gitIdx], "") {
 		return Ref{}, false
 	}
 

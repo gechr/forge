@@ -56,24 +56,49 @@ func (r Ref) Slug() string {
 	return r.Owner + pathSep + r.Name
 }
 
-// WebURL returns the browsable web URL for the repository. An empty Host
-// defaults to GitHub.
+// WebURL returns the browsable web URL for the repository, or "" when the
+// forge's URLs cannot be built from host/owner/name - see [Ref.constructable].
+// An empty Host defaults to GitHub.
 func (r Ref) WebURL() string {
+	if !r.constructable() {
+		return ""
+	}
 	return "https://" + r.hostOrDefault() + pathSep + r.Slug()
 }
 
-// HTTPSURL returns the HTTPS clone URL for the repository. Like SSHURL, it
-// assumes host/owner/name clone paths, which does not hold for Azure DevOps
-// - prefer CloneURL when the Ref came from ParseURL.
+// HTTPSURL returns the HTTPS clone URL for the repository, or "" when it cannot
+// be built - see [Ref.constructable]. Prefer CloneURL when the Ref came from
+// ParseURL: it preserves the exact path the reference carried.
 func (r Ref) HTTPSURL() string {
+	if !r.constructable() {
+		return ""
+	}
 	host := r.hostOrDefault()
 	return cloneURL(SchemeHTTPS, host, r.Slug(), gitSuffixFor(host))
 }
 
-// SSHURL returns the SSH clone URL for the repository.
+// SSHURL returns the SSH clone URL for the repository, or "" when it cannot be
+// built - see [Ref.constructable].
 func (r Ref) SSHURL() string {
+	if !r.constructable() {
+		return ""
+	}
 	host := r.hostOrDefault()
 	return cloneURL(SchemeSSH, host, r.Slug(), gitSuffixFor(host))
+}
+
+// constructable reports whether this forge's URLs follow the host/owner/name
+// shape the URL builders assume.
+//
+// Azure DevOps does not: its web and clone paths interpose a _git segment
+// (dev.azure.com/org/project/_git/repo) and its SSH form is different again
+// (ssh.dev.azure.com/v3/org/project/repo). Owner carries org/project so the Ref
+// itself is lossless, but no arrangement of host, owner, and name reproduces
+// those URLs. Returning "" says so; returning a URL assembled anyway would name
+// a page that has never existed, and a caller cannot tell that from a good one.
+// Use CloneURL, which ParseURL fills in from the path actually given.
+func (r Ref) constructable() bool {
+	return r.hostOrDefault() != HostAzureDevOps
 }
 
 func (r Ref) hostOrDefault() string {
