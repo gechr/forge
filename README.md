@@ -38,22 +38,22 @@ ref.HTTPSURL() // "https://<host>/owner/name.git"
 ### Accepted forms
 
 - **URL** (per `git-clone(1)`): `https://`, `ssh://`, `git://`, scp-like `git@host:path`, bare host `github.com/owner/repo`
-- **Shorthand**: `repo`, `owner/repo`, `owner/repo#42`, `owner/repo@rev`
+- **Shorthand**: `repo`, `owner/repo`, `owner/repo#42`, `owner/repo/pull/42`, `owner/repo@rev`
 
 ## API
 
-| Symbol                              | Description                                                            |
-| ----------------------------------- | ---------------------------------------------------------------------- |
-| `Parse(input, opts...)`             | Full grammar: URL or shorthand                                         |
-| `ParseURL(raw)`                     | URL forms only; `(Ref, bool)` probe                                    |
-| `ParseShorthand(s, opts...)`        | `repo` \| `owner/repo` \| `owner/repo#42` \| `owner/repo@rev`          |
-| `WithDefaultOwner(owner)`           | Owner assumed when shorthand omits one                                 |
-| `WithDefaultHost(host)`             | Host recorded on shorthand results                                     |
-| `Resolve(value)`                    | Forge by name (`github`, ...) or hostname; `""` defaults to GitHub     |
-| `Register(forge)`                   | Add a self-hosted forge with its own parser                            |
-| `ExpandPRList(spec)`                | `"1,2,5-7"` → `[1 2 5 6 7]`                                            |
-| `IsValidRepoName(name)`             | Plausible repository name check                                        |
-| `DetectVCS(dir)`                    | Alias for `vcs.Detect`, below                                          |
+| Symbol                       | Description                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `Parse(input, opts...)`      | Full grammar: URL or shorthand                                                        |
+| `ParseURL(raw)`              | URL forms only; `(Ref, bool)` probe                                                   |
+| `ParseShorthand(s, opts...)` | `repo` \| `owner/repo` \| `owner/repo#42` \| `owner/repo/pull/42` \| `owner/repo@rev` |
+| `WithDefaultOwner(owner)`    | Owner assumed when shorthand omits one                                                |
+| `WithDefaultHost(host)`      | Host recorded on shorthand results                                                    |
+| `Resolve(value)`             | Forge by name (`github`, ...) or hostname; `""` defaults to GitHub                    |
+| `Register(forge)`            | Add a self-hosted forge with its own parser                                           |
+| `ExpandPRList(spec)`         | `"1,2,5-7"` → `[1 2 5 6 7]`                                                           |
+| `IsValidRepoName(name)`      | Plausible repository name check                                                       |
+| `DetectVCS(dir)`             | Alias for `vcs.Detect`, below                                                         |
 
 ## Checkout inspection - `forge/vcs`
 

@@ -38,6 +38,10 @@ func TestParseShorthand(t *testing.T) {
 			want:  Ref{ExplicitOwner: true, Owner: "owner", Name: "repo", PullRequest: "21"},
 		},
 		{
+			input: "owner/repo/pull/42",
+			want:  Ref{ExplicitOwner: true, Owner: "owner", Name: "repo", PullRequest: "42"},
+		},
+		{
 			input: "@me/repo",
 			want:  Ref{ExplicitOwner: true, Owner: "@me", Name: "repo"},
 		},

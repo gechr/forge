@@ -49,6 +49,7 @@ func Parse(input string, opts ...Option) (Ref, error) {
 //	repo
 //	owner/repo
 //	owner/repo#42          (pull request)
+//	owner/repo/pull/42     (GitHub-style pull request)
 //	owner/repo@main        (branch or tag - see Ref.Rev)
 //	owner/repo@v1.2.3
 //	owner/repo@<sha>       (40-hex commit)
@@ -75,6 +76,16 @@ func ParseShorthand(input string, opts ...Option) (Ref, error) {
 		if rev == "" || strings.Contains(rev, "#") {
 			return Ref{}, fmt.Errorf("invalid repository %q", input)
 		}
+	}
+
+	// Accept GitHub's /pull/<number> shape without requiring a hostname. Fold
+	// it into the ordinary shorthand form so owner, name, and PR extraction
+	// retain one validation path.
+	if repo, pr, ok := strings.Cut(text, "/pull/"); ok {
+		if repo == "" || pr == "" || strings.Contains(pr, pathSep) {
+			return Ref{}, fmt.Errorf("invalid repository %q", input)
+		}
+		text = repo + "#" + pr
 	}
 
 	owner := o.defaultOwner

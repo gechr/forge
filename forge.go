@@ -1,13 +1,14 @@
 // Package forge parses repository references into their coordinates. A
 // reference can be a full URL in any of the forms git-clone(1) accepts
 // (https, ssh, scp-like, git, bare hostname) or a shorthand (repo,
-// owner/repo, owner/repo#42, owner/repo@rev), and parsing yields the host,
-// owner, name, and any branch, tag, commit, pull request, or file path the
-// reference carries. The URL shapes of GitHub, GitLab, Sourcehut, Codeberg,
-// Bitbucket, and Azure DevOps are known; anything else falls back to a
-// generic owner/repo reading, so self-hosted forges work out of the box.
-// Everything here is pure and offline - no network calls; resolving what an
-// ambiguous reference points at (e.g. Ref.Rev) is the caller's job.
+// owner/repo, owner/repo#42, owner/repo/pull/42, owner/repo@rev), and parsing
+// yields the host, owner, name, and any branch, tag, commit, pull request, or
+// file path the reference carries. The URL shapes of GitHub, GitLab,
+// Sourcehut, Codeberg, Bitbucket, and Azure DevOps are known; anything else
+// falls back to a generic owner/repo reading, so self-hosted forges work out
+// of the box. Everything here is pure and offline - no network calls;
+// resolving what an ambiguous reference points at (e.g. Ref.Rev) is the
+// caller's job.
 package forge
 
 import (
