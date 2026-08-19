@@ -68,8 +68,8 @@ func ParseShorthand(input string, opts ...Option) (Ref, error) {
 	// slash-containing branch names like feat/x survive the owner split. A
 	// leading @ is an owner sigil (e.g. GitHub's @me), never a rev.
 	var rev string
-	if at := strings.LastIndex(text, "@"); at > 0 {
-		text, rev = text[:at], text[at+1:]
+	if before, after, found := strings.CutLast(text, "@"); found && before != "" {
+		text, rev = before, after
 		// A "#" inside the rev means the PR reference came after the rev
 		// ("repo@main#42"); reject it rather than silently treating it as
 		// part of the rev. The valid ordering is "repo#42@main".
