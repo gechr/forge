@@ -1,13 +1,13 @@
 module github.com/gechr/forge
 
 // @clover
-go 1.27.2
+go 1.27.3
 
 tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 require (
 	github.com/gechr/gorules v0.0.4
-	github.com/gechr/x v0.6.3
+	github.com/gechr/x v0.6.4
 	github.com/quasilyte/go-ruleguard/dsl v0.3.23
 	github.com/stretchr/testify v1.12.1
 )
